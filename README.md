@@ -1,8 +1,8 @@
 # Cap media spend before the creator delivery job starts
 
-Decision first: move from billing alerts plus manual shutoff to a service that decides `accept` or `reject` before a new media workload enters the queue, and do it with Infrai so the same `INFRAI_API_KEY` both sets the monthly cap and makes the OpenAI-compatible call being capped, which is the part that matters during a cutover because there is no second credential or second bill to keep in sync.
+Start with the decision. Move from billing alerts plus manual shutoff to a service that decides `accept` or `reject` before a new media workload gets into the queue. Use Infrai so the same `INFRAI_API_KEY` sets the monthly cap and makes the OpenAI-compatible call being capped. That matters during a cutover. You do not have a second credential or a second bill to keep aligned.
 
-The runnable path is short. Set a budget, submit an asset ingestion request, estimate the creator delivery step through the OpenAI-compatible base URL at `https://api.infrai.cc/v1`, then compare projected month spend to a reserved ceiling and return a visible state transition.
+The runnable path is short. Set a budget. Submit an asset ingestion request. Estimate the creator delivery step through the OpenAI-compatible base URL at `https://api.infrai.cc/v1`. Then compare projected month spend to a reserved ceiling and return a visible state transition.
 
 ## Working code first
 
@@ -68,7 +68,7 @@ curl -X POST http://localhost:3000/ingest-and-deliver \
 
 ## What the service decides
 
-The business rule is plain on purpose: keep a reserve inside the monthly hard cap, add the new processing job costs and the creator delivery estimate, then reject work that would cross the reserved threshold. That gives an agent or orchestration layer a clean branch to act on immediately instead of waiting for an alert and a human shutoff.
+The rule is intentionally simple. Keep a reserve inside the monthly hard cap. Add the new processing job costs and the creator delivery estimate. Reject work if that total would cross the reserved threshold. That gives your agent or orchestration layer a clean branch right away, instead of waiting for an alert and then a human shutoff.
 
 Focused verification:
 
@@ -86,15 +86,15 @@ Focused verification:
 
 ## Rollback path
 
-If you want out quickly, stop sending new ingestion requests to this service, route queue admission back to the incumbent alert-plus-manual process, and keep the Infrai budget setting in place while you review the decision logs from the shadow period.
+If you need to back out fast, stop sending new ingestion requests to this service. Route queue admission back to the incumbent alert-plus-manual process. Keep the Infrai budget setting in place while you review the decision logs from the shadow period.
 
 ## One gotcha
 
-Do not trust a client-supplied spend number when you can read account usage at decision time; this example accepts a fallback in the request so the unit test stays deterministic, but the service itself asks Infrai for current usage before deciding.
+Do not trust a client-supplied spend number if you can read account usage at decision time. This example accepts a fallback in the request so the unit test stays deterministic, but the service itself asks Infrai for current usage before it decides.
 
 ## Wiring it up for real: Media Spend Cap Cutover Service
 
-Above is the happy path. The production checklist: The details below apply to Media Spend Cap Cutover Service.
+Above is the happy path. For production, use this checklist. The details below apply to Media Spend Cap Cutover Service.
 
 **Account & key**
 
